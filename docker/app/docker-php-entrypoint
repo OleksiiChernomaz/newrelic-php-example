@@ -1,0 +1,25 @@
+#!/bin/sh
+# fail on any error
+set -e
+
+# newrelic, variables passed from the cloud formation templates.
+# This variables are used in the agent config ( newrelic.ini file)
+NEWRELIC_DAEMON_HOST=${NEWRELIC_DAEMON_HOST:-""}
+NEWRELIC_APP_NAME=${NEWRELIC_APP_NAME:-""}
+NEWRELIC_LICENSE=${NEWRELIC_LICENSE:-""}
+
+# first arg is `-f` or `--some-option`
+if [ "${1#-}" != "$1" ]; then
+        set -- php-fpm "$@"
+fi
+
+######### hack starts here to avoid app registration problems between NR agent and NR daemon
+# first 2 calls never pass through
+for i in 1 2 3 4; do
+    php -r "newrelic_record_custom_event(\"event_test\", array(\"loop\"=>\"preload $i\", \"time\"=>date(\"Y-m-d H:i:s\"))); sleep(1);"
+done
+######### env of hack
+
+exec "$@"
+
+

@@ -1,0 +1,38 @@
+version: '2'
+
+networks:
+    prod-network:
+        driver: bridge
+
+services:
+    app:
+        container_name: test-app
+        image: test-app:latest
+        build:
+            context: ./docker/app
+            args:
+                - BASE_IMAGE=${APP_BASE_IMAGE}
+                - NEWRELIC_VERSION=${NEWRELIC_VERSION}
+        environment:
+            NEWRELIC_APP_NAME: ${NEWRELIC_APP_NAME}
+            NEWRELIC_LICENSE:  ${NEWRELIC_LICENSE}
+            NEWRELIC_DAEMON_HOST: ${NEWRELIC_DAEMON_HOST}
+        depends_on:
+            - newrelic-daemon
+        external_links:
+            - newrelic-daemon:${NEWRELIC_DAEMON_HOST}
+        networks:
+            - prod-network
+
+    newrelic-daemon:
+        container_name: test-app-nr-daemon
+        image: test-app-nr:latest
+        build:
+            context: ./docker/newrelic
+            args:
+                - BASE_IMAGE=${APP_BASE_IMAGE}
+                - NEWRELIC_VERSION=${NEWRELIC_VERSION}
+        networks:
+            - prod-network
+        environment:
+            NEWRELIC_DAEMON_HOST: ${NEWRELIC_DAEMON_HOST}
