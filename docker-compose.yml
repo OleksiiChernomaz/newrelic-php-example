@@ -9,11 +9,14 @@ services:
         container_name: test-app
         image: test-app:latest
         build:
-            context: ./docker/app
+            context: ./
+            dockerfile: ./docker/app/Dockerfile
             args:
                 - BASE_IMAGE=${APP_BASE_IMAGE}
                 - NEWRELIC_VERSION=${NEWRELIC_VERSION}
+                - NEWRELIC_ARCHIVE_URL=${NEWRELIC_ARCHIVE_URL}
         environment:
+            NEWRELIC_ENABLED: ${NEWRELIC_ENABLED}
             NEWRELIC_APP_NAME: ${NEWRELIC_APP_NAME}
             NEWRELIC_LICENSE:  ${NEWRELIC_LICENSE}
             NEWRELIC_DAEMON_HOST: ${NEWRELIC_DAEMON_HOST}
@@ -28,10 +31,11 @@ services:
         container_name: test-app-nr-daemon
         image: test-app-nr:latest
         build:
-            context: ./docker/newrelic
+            context: ./docker/newrelic-daemon
             args:
                 - BASE_IMAGE=${APP_BASE_IMAGE}
                 - NEWRELIC_VERSION=${NEWRELIC_VERSION}
+                - NEWRELIC_ARCHIVE_URL=${NEWRELIC_ARCHIVE_URL}
         networks:
             - prod-network
         environment:

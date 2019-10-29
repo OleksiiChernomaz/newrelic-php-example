@@ -5,10 +5,11 @@ Also helps to illustrate registration problem between NR agent and NR daemon whi
 
 # To run
 ```bash
-docker-compose build && docker-compose run --rm app
+./run.sh
 ```
-
-# To see all runtime logs, use
-```bash
-docker-compose logs -f
-```
+># Warning! 
+>
+> NewRelic (NR) agent will be able to send data to daemon 
+> from short running scripts only starting from version `9.3.0.246`
+>
+> And it works ONLY when you have enabled `newrelic.daemon.app_connect_timeout` and defined to at least few seconds.
