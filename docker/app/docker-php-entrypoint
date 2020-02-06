@@ -1,11 +1,10 @@
 #!/bin/sh
-# fail on any error
 set -e
 
-# newrelic, variables passed from the cloud formation templates.
+NEWRELIC_USE_HACK=${NEWRELIC_USE_HACK:-0}
+
 # This variables are used in the agent config ( newrelic.ini file)
-NEWRELIC_ENABLED=${NEWRELIC_ENABLED}
-NEWRELIC_DAEMON_HOST=${NEWRELIC_DAEMON_HOST:-""}
+NEWRELIC_ENABLED=${NEWRELIC_ENABLED:-0}
 NEWRELIC_APP_NAME=${NEWRELIC_APP_NAME:-""}
 NEWRELIC_LICENSE=${NEWRELIC_LICENSE:-""}
 
@@ -14,6 +13,35 @@ if [ "${1#-}" != "$1" ]; then
         set -- php-fpm "$@"
 fi
 
-exec "$@"
+# and hack to make new relic working for commands in short time running container with autostart daemon
+if [ "${NEWRELIC_ENABLED}" == 1 ]; then
+    if [ "${NEWRELIC_USE_HACK}" == 1 ]; then
+        echo "#############################################################################################################"
+        echo "Activating newRelic for app ${NEWRELIC_APP_NAME}, Here hack comes (part 1): NR spin up"
+       #warmup NR agent (hit 1 - daemon start, hit-2 register application - they are all will be ignored)
+        for i in 1 2; do
+            echo "#####################################################"
+            echo "Iteration ${i}"
+            php -r "newrelic_record_custom_event(\"newrelic_warmup_event_you_must_not_see\", array(\"loop\"=>\"$i\", \"time\"=>date(\"Y-m-d H:i:s\")));"
+            sleep 2;
+        done
+    fi;
+fi;
+
+echo "#############################################################################################################"
+echo "Application execution here";
+# send into the subshell, so that after execution, we can continue entrypoint execution and do not exit
+(exec "$@")
 
 
+if [ "${NEWRELIC_USE_HACK}" == 1 ]; then
+    echo "#############################################################################################################"
+    echo "Here hack comes (part 2): let daemon flush data";
+    # tell NR daemon that time to die and flush all data, without waiting for the harvesting cycle get finished
+    # alternatively you can catch a sigterm or use "init: true" setting
+    kill `cat /var/run/newrelic-daemon.pid` || /usr/bin/newrelic-daemon stop
+
+    # just wait a little bit to ensure that all the data are send out from the container
+    # you can also use graceful shut down strategy.
+    sleep 2
+fi;
